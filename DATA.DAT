@@ -1,0 +1,46 @@
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; DATA AREA
+
+copy_r  db ' PhoneBook V1.2- (C) Copyright 1995, Marcos Calabrese',13,10,'$'
+bye_    db ' - PhoneBook V1.2 - Done in assembly by Marcos Calabrese -',13,10
+	db '             - Rosario, Argentina - 1995 -',13,10,'$'
+
+menu_1  db 'ÚÄ´MAIN MENUÃÄÄÄÄÄÄÄÄÄÄÄÄÄ¿',13,10
+	db '³                         ³',13,10
+	db '³       (A)dd item        ³',13,10
+	db '³   (D)isplay all items   ³',13,10
+	db '³      (S)earch item      ³',13,10
+	db '³      (E)rase item       ³',13,10
+	db '³        (P)rint          ³',13,10
+	db '³         (Q)uit          ³',13,10
+	db '³                         ³',13,10
+	db 'ÀÄÄÄÄÄÄ´Option [ ]ÃÄÄÄÄÄÄÄÙ',13,10,'$'
+
+err_1   db 'ş Data file is corrupt.',13,10,'$'
+err_2   db 'ş No available items to be filled in.',13,10,'$'
+stat_1  db 13,10,'Loading data...$'
+stat_2  db 'Empty database.$'
+stat_3  db 13,10,'Item not found.',13,10,'$'
+stat_4  db 13,10,'Delete it?$'
+down_   db 13,10,'$'
+tab_	db 09,09
+head_   db 'TEL',0
+got_h   db 3 dup (0)
+file    db 'tel.dat',0
+fh      dw 0
+name_   db 13,10,'Name: $'
+tel_    db 13,10,'Tel: $'
+look_p  db 13,10,'Name to search: $'
+del_p   db 13,10,'Name to delete: $'
+p_p     db 13,10,'Name to print (ENTER for all): $'
+nam_c   equ 30
+nam_    db nam_c,0,nam_c dup (0)
+te_c    equ 20
+te_     db te_c,0,te_c dup (0)
+look_4  db nam_c,0,nam_c dup (0)
+look_n  dw 0
+n_items dw 0
+count_  db 0
+flag1   db 0
+flag2   db 0
+buf     db 5000 dup (0)

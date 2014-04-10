@@ -1,0 +1,417 @@
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+; CALLS
+
+; Print string
+p_t:
+	mov ah,09h
+	int 21h
+	ret
+
+; Clear screen
+csr_:
+	mov ax,0003h
+	int 10h
+	ret
+
+; Move file pointer to begin
+fp_st:
+	mov ax,4200h
+	xor cx,cx
+	xor dx,dx
+	int 21h
+	ret
+
+; Updates data file
+save_info:
+	cmp byte ptr [flag1],0
+	je go_2
+	cmp word ptr [n_items],0
+	je ret0
+	mov ah,3ch
+	xor cx,cx
+	mov dx,offset file
+	int 21h
+	mov fh,ax
+go_2:	mov bx,fh
+	call fp_st
+	mov bx,fh
+	mov ah,40h			; Escribe header
+	mov cx,3
+	mov dx,offset head_
+	int 21h
+	mov bx,fh
+	mov ah,40h			; Escribe el numero de items
+	mov cx,1
+	mov dx,offset n_items
+	int 21h
+	call calc_
+	mov cx,ax
+	mov bx,fh
+	mov ah,40h			; Escribe el buffer
+	mov dx,offset buf
+	int 21h
+	mov ah,3eh
+	int 21h
+ret0:	ret
+
+wait_key:
+	xor ax,ax
+	int 16h
+	ret
+
+clear_b:
+	mov si,offset [nam_+2]
+	mov di,si
+	mov cx,nam_c
+lt1:	lodsb
+	xor ax,ax
+	stosb
+	loop lt1
+
+	mov si,offset [te_+2]
+	mov di,si
+	mov cx,te_c
+lt2:	lodsb
+	xor ax,ax
+	stosb
+	loop lt2
+
+	mov si,offset [look_4+2]
+	mov di,si
+	mov cx,nam_c
+lt3:	lodsb
+	xor ax,ax
+	stosb
+	loop lt3
+
+	mov byte ptr [count_],0
+	mov byte ptr [flag2],0
+	ret
+
+calc_:
+	xor ax,ax
+	mov cx,n_items			; Calcular offset para poner
+	mov al,50			; los datos ingresados
+	mul cx
+	ret
+
+curr_t:
+	mov bx,50
+	div bx
+	ret
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+add_item:
+	cmp n_items,100			; Hay 100 registros?
+	jne go_on			; No, seguir...
+	mov dx,offset err_2		; Si, mostrar error
+	call p_t
+	call wait_key
+	jmp main_menu
+
+go_on:	call csr_
+
+	mov dx,offset name_		; Ingresar nombre
+	call p_t
+	mov ah,0ch
+	mov al,0ah
+	mov dx,offset nam_
+	int 21h
+	mov dx,offset tel_		; Ingresar telefono
+	call p_t
+	mov ah,0ch
+	mov al,0ah
+	mov dx,offset te_
+	int 21h
+
+	cmp byte ptr [nam_+1],0
+	je ret1
+	cmp byte ptr [te_+1],0
+	je ret1
+
+	call calc_
+	xor di,di
+	mov di,offset buf
+	add di,ax
+
+	mov si,offset [nam_+2]		; Mover datos obtenidos
+	mov cx,nam_c			; al buffer
+	rep movsb
+	xor si,si
+	mov si,offset [te_+2]
+	mov cx,te_c
+	rep movsb
+	inc [n_items]			; Incrementar contador
+
+	xor si,si			; Sacar los ENTER
+	mov si,offset buf		; del buffer
+	mov cx,5000
+ll8:	cmp byte ptr [si],0dh
+	jne ll9
+	mov dl,00h
+	mov byte ptr [si],dl
+ll9:	inc si
+	loop ll8
+ret1:	ret
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+show_it:
+	call csr_
+	cmp word ptr [n_items],0
+	jne goo_
+	mov dx,offset stat_2
+	call p_t
+	call wait_key
+	jmp ret4
+goo_:	mov si,offset buf
+	mov cx,n_items
+l9:	push cx
+	mov cx,50
+l7:	lodsb
+	mov dl,al
+	mov ah,02h
+	int 21h
+	loop l7
+	mov dx,offset down_
+	mov ah,09h
+	int 21h
+	inc [count_]
+	cmp byte ptr [count_],24
+	jne ll1
+	call wait_key
+	mov byte ptr [count_],0
+ll1:	pop cx
+	loop l9
+	call wait_key
+ret4:	ret
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+look_4_it:
+	call csr_
+	cmp word ptr [n_items],0
+	jne goo_o
+	mov dx,offset stat_2
+	call p_t
+	call wait_key
+	jmp ret2
+goo_o:	mov dx,offset look_p
+	call p_t
+	mov ah,0ch
+	mov al,0ah
+	mov dx,offset look_4
+	int 21h
+	cmp byte ptr [look_4+1],0
+	je ret2
+	xor bx,bx
+	xor cx,cx
+	xor si,si
+	mov si,offset buf
+	mov cx,n_items
+lp1:	push cx
+	push si
+	xor cx,cx
+	mov cl,[look_4+1]
+	mov di,offset [look_4+2]
+	push cx
+	rep cmpsb
+	pop cx
+	je found_
+lh_:	pop si
+	add si,50
+	pop cx
+	loop lp1
+
+	cmp byte ptr [flag2],0
+	jne ret2
+	mov dx,offset stat_3
+	call p_t
+	call wait_key
+ret2:	ret
+
+found_:
+	pop si
+	push si
+	xor di,di
+	mov cx,50
+lp2:	lodsb
+	mov dl,al
+	mov ah,02h
+	int 21h
+	loop lp2
+	call wait_key
+	mov dx,offset down_
+	call p_t
+	inc [flag2]
+	jmp lh_
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+del_it:
+	call csr_
+	cmp word ptr [n_items],0
+	jne goo_oo
+	mov dx,offset stat_2
+	call p_t
+	call wait_key
+	jmp ret3
+goo_oo:	mov dx,offset del_p
+	call p_t
+	mov ah,0ch
+	mov al,0ah
+	mov dx,offset look_4
+	int 21h
+	cmp byte ptr [look_4+1],0
+	je ret3
+	xor bx,bx
+	xor cx,cx
+	xor si,si
+	mov si,offset buf
+	mov cx,n_items
+
+lpt1:	push cx
+	push si
+	xor cx,cx
+	mov cl,[look_4+1]
+	mov di,offset [look_4+2]
+	push cx
+	rep cmpsb
+	pop cx
+	je found_d
+	pop si
+	add si,50
+	pop cx
+	loop lpt1
+
+	mov dx,offset stat_3
+	call p_t
+	call wait_key
+	jmp ret3
+
+found_d:
+	pop si
+	pop cx
+	push si
+	xor di,di
+	mov cx,50
+lpt2:	lodsb
+	mov dl,al
+	mov ah,02h
+	int 21h
+	loop lpt2
+	mov dx,offset down_
+	call p_t
+	mov dx,offset stat_4
+	call p_t
+lpk:	call wait_key
+	cmp al,'y'
+	je yeah_
+	cmp al,'Y'
+	je yeah_
+	cmp al,'n'
+	je nope_
+	cmp al,'N'
+	jne lpk
+	jmp nope_
+
+ret3:	ret
+
+nope_:	pop si
+	xor si,si
+	xor di,di
+	xor ax,ax
+	xor cx,cx
+	xor dx,dx
+	jmp ret3
+
+yeah_:	dec [n_items]
+	pop si
+	mov di,si
+	add si,50
+	call calc_
+	mov cx,4950
+	sub cx,ax
+	rep movsb
+
+	xor si,si
+	xor di,di
+	mov si,offset buf
+	call calc_
+	add si,ax
+	mov cx,5000
+	sub cx,ax
+	mov di,si
+lop1:	lodsb
+	xor ax,ax
+	stosb
+	loop lop1
+	jmp ret3
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+p_item:
+	call csr_
+
+	mov dx,offset p_p
+	call p_t
+	mov ah,0ch
+	mov al,0ah
+	mov dx,offset nam_
+	int 21h
+
+	cmp byte ptr [nam_+1],0
+	jne p_ind
+
+
+
+ret5:	ret
+
+p_ind:	xor bx,bx
+	xor cx,cx
+	xor si,si
+	mov si,offset buf
+	mov cx,n_items
+lp3:	push cx
+	push si
+	xor cx,cx
+	mov cl,[nam_+1]
+	mov di,offset [nam_+2]
+	push cx
+	rep cmpsb
+	pop cx
+	je found_p
+lh_2:	pop si
+	add si,50
+	pop cx
+	loop lp3
+
+	cmp byte ptr [flag2],0
+	jne ret5
+	mov dx,offset stat_3
+	call p_t
+	call wait_key
+	jmp ret5
+
+found_p:
+	pop si
+	push si
+	xor di,di
+	mov bx,0004h
+	mov ah,40h
+	mov cx,2
+	mov dx,offset down_
+	int 21h
+
+	mov ah,40h		; Imprimir nombre
+	mov cx,30
+	mov dx,si
+	int 21h
+	mov ah,40h		; Imprimir unos TABs
+	mov cx,2
+	mov dx,offset tab_
+	int 21h
+	add si,30
+	mov ah,40h		; Imprimir telefono
+	mov cx,20
+	mov dx,si
+	int 21h
+	inc [flag2]
+	jmp lh_2
+
